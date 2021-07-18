@@ -149,7 +149,11 @@ jobs:
           command: |            
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
             --output text >> .circleci/ansible/inventory.txt
+            BACKEND_IP=`cat .circleci/ansible/inventory.txt | head -2 | tail -1`
+            echo "BACKEND_IP: ${BACKEND_IP}"
+
       - run:
           name: Install tar/gzip utility
           command: |
@@ -198,6 +202,6 @@ workflows:
      # - deploy-infrastructure:
      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
      # - deploy-infrastructure:
-     # - deploy-infrastructure
-      - configure-infrastructure
-     #    requires: [deploy-infrastructure]
+      - deploy-infrastructure
+      - configure-infrastructure:
+        requires: [deploy-infrastructure]
