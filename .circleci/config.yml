@@ -1,7 +1,127 @@
 version: 2.1
 
+commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    parameters:
+      # Add parameter here
+      workflow_id:
+        type: string
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            # Detroy the Stacks incase of errors
+            aws cloudformation delete-stack --stack-name frontend-<<parameters.workflow_id>>
+            aws cloudformation delete-stack --stack-name backend-<<parameters.workflow_id>>
+            
+            # Destroy the S3 buckets if errors occured.
+            aws s3 rb s3://udapeople-<<parameters.workflow_id>> --force
+                      
 jobs:
+  build-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Build front-end
+          command: |
+            cd frontend
+            npm install
+            npm run build
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
+  build-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Back-end build
+          command: |
+             cd backend
+             npm install
+             npm run build
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
+          
+  test-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-test]
+      - run:
+          name: front-end test
+          command: |
+             cd frontend
+             npm install
+             npm run test
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-test
+                
+  test-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-test]
+      - run:
+          name: back-end test
+          command: |
+             cd backend
+             npm install
+             npm run test
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-test
+          
+  scan-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-scan]
+      - run:
+          name: front-end audit
+          command: |
+             cd frontend
+             npm install
+             npm audit fix --audit-level=critical --force
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-scan
+
+  scan-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-scan]
+      - run:
+          name: back-end audit
+          command: |
+             cd backend
+             npm install
+             npm audit fix --audit-level=critical --force
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-scan
+          
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
@@ -39,8 +159,11 @@ jobs:
       - persist_to_workspace:
           root: .circleci/ansible
           paths:
-            - inventory.txt
-  
+            - inventory.txt  
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+          
+          
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
@@ -59,10 +182,51 @@ jobs:
           command: |
             cat /tmp/.circleci/ansible/inventory.txt
             ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
-         # Here's where you will add some code to rollback on failure                
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+  
+  run-migrations:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            npm run migrations >> migrations_file.txt
+      - run:
+          name: Send migration results to memstash
+          command: |
+            cd backend
+            if grep -q "has been executed successfully." migrations_file.txt
+            then
+              curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+            else
+              echo $(curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" --request PUT --data "0" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
+            fi
+      # Here's where you will add some code to rollback on failure                
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+
 workflows:
   default:
     jobs:
+     #  - build-frontend
+     # - build-backend
+     # - test-frontend:
+     #     requires: [build-frontend]
+     # - test-backend:
+     #     requires: [build-backend]
+     # - scan-backend:
+     #     requires: [build-backend]
+     # - scan-frontend:
+     #     requires: [build-frontend]      
+     # - deploy-infrastructure:
+     #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
       - deploy-infrastructure
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
