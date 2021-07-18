@@ -136,7 +136,31 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-            
+  
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["7c:77:4e:99:ca:46:c8:2d:31:73:32:cc:12:36:85:11"]      # Add ssh keys with fingerprint
+      - attach_workspace:
+          at: project/.circleci/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            pwd && \
+            ls -la && \
+            cat inventory && \
+            chmod 400 *.pem && \
+            ls -la && \
+            export ANSIBLE_HOST_KEY_CHECKING=False && \
+            ansible-playbook -i inventory playbook.yml --private-key udacity.pem
+
          # Here's where you will add some code to rollback on failure                
 workflows:
   default:
@@ -153,4 +177,3 @@ workflows:
      #     requires: [build-frontend]      
      # - deploy-infrastructure:
      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-       - deploy-infrastructure
