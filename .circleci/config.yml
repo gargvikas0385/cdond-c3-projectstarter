@@ -146,14 +146,13 @@ jobs:
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
       - run:
           name: Add back-end ip to ansible inventory
-          command: |            
+          command: |
+            pwd
+            ls -al 
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
-            --output text >> .circleci/ansible/inventory.txt
-            BACKEND_IP=`cat .circleci/ansible/inventory.txt | head -2 | tail -1`
-            echo "BACKEND_IP: ${BACKEND_IP}"
-
+            --output text >> inventory.txt
       - run:
           name: Install tar/gzip utility
           command: |
