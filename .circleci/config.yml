@@ -1,5 +1,25 @@
 version: 2.1
 
+commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    parameters:
+      # Add parameter here
+      workflow_id:
+        type: string
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            # Your code here
+            # Delete front- and back-end stacks
+            aws cloudformation delete-stack --stack-name frontend-<< parameters.workflow_id >>
+            aws cloudformation delete-stack --stack-name backend-<< parameters.workflow_id >>
+            # Force removal of S3 buckets, even if it's not empty
+            # (see https://docs.aws.amazon.com/AmazonS3/latest/dev/delete-or-empty-bucket.html)
+            aws s3 rb s3://udapeople-<< parameters.workflow_id >> --force
+            
 jobs:
   build-frontend:
     docker:
@@ -138,7 +158,10 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-  
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+          
+          
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
@@ -155,6 +178,8 @@ jobs:
       - run:
           name: Configure server
           command: |
+            pwd && \ 
+            ls -al && \ 
             ansible-playbook -i inventory.txt configure-server.yml
 
          # Here's where you will add some code to rollback on failure                
@@ -174,6 +199,6 @@ workflows:
      # - deploy-infrastructure:
      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
      # - deploy-infrastructure:
-      - deploy-infrastructure
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
+     # - deploy-infrastructure
+      - configure-infrastructure
+     #    requires: [deploy-infrastructure]
