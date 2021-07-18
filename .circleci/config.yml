@@ -127,27 +127,12 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |            
-            aws ec2 describe-instances \ 
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \ 
-            --output text >> .circleci/ansible/inventory.txt
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/.circleci/ansible/inventory.txt
-            
-  describe-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Add back-end ip to ansible inventory
-          command: |            
             aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
+            
          # Here's where you will add some code to rollback on failure                
 workflows:
   default:
@@ -164,4 +149,4 @@ workflows:
      #     requires: [build-frontend]      
      # - deploy-infrastructure:
      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-     - describe-infrastructure
+       - deploy-infrastructure
