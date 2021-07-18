@@ -1,52 +1,24 @@
 version: 2.1
 
 jobs:
-  deploy-infrastructure:
+  configure-infrastructure:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints: ["7c:77:4e:99:ca:46:c8:2d:31:73:32:cc:12:36:85:11"]      # Add ssh keys with fingerprint
+      - attach_workspace:
+          at: project/.circleci/ansible
       - run:
-          name: Ensure back-end infrastructure exists
+          name: Install dependencies
           command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=udapeople-project3 \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
+            apk add --update ansible
       - run:
-          name: Ensure front-end infrastructure exist
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
-              --tags project=udapeople-project3 \
-              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
-      - run:
-          name: Add back-end ip to ansible inventory
+          name: Configure server
           command: |
             cd .circleci/ansible
-            ls -al inventory*
-            cat inventory.txt
-            aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
-            --output text
-            
-            aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
-            --output text >> inventory.txt
-            cat inventory.txt
-      - run:
-          name: Install tar/gzip utility
-          command: |
-            yum -y install tar gzip
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/.circleci/ansible/inventory.txt
- 
+            ansible-playbook -i inventory.txt configure-server.yml
          # Here's where you will add some code to rollback on failure                
 workflows:
   default:
