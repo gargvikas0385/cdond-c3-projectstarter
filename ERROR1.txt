@@ -19,7 +19,7 @@ npm WARN glee2@1.0.0 No repository field.
 npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.12 (node_modules/fsevents):
 npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.12: wanted {"os":"darwin","arch":"any"} (current: {"os":"linux","arch":"x64"})
 
-added 1311 packages from 1064 contributors and audited 1389 packages in 35.278s
+added 1311 packages from 1064 contributors and audited 1389 packages in 16.627s
 
 23 packages are looking for funding
   run `npm fund` for details
@@ -43,8 +43,7 @@ npm ERR! Failed at the glee2@1.0.0 migrations script.
 npm ERR! This is probably not a problem with npm. There is likely additional logging output above.
 
 npm ERR! A complete log of this run can be found in:
-npm ERR!     /home/circleci/.npm/_logs/2021-07-20T14_26_57_876Z-debug.log
+npm ERR!     /home/circleci/.npm/_logs/2021-07-20T17_51_07_856Z-debug.log
 
 Exited with code exit status 1
 CircleCI received exit code 1
-
