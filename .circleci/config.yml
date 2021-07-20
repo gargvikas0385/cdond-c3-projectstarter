@@ -17,8 +17,7 @@ commands:
             aws cloudformation delete-stack --stack-name backend-<<parameters.workflow_id>>
             
             # Destroy the S3 buckets if errors occured.
-            aws s3 rb s3://udapeople-<<parameters.workflow_id>> --force
-                      
+            aws s3 rb s3://udapeople-<<parameters.workflow_id>> --force                 
 jobs:
   build-frontend:
     docker:
